@@ -925,7 +925,7 @@ class SqlitePlatform extends AbstractPlatform
         if ( ! empty($diff->renamedColumns) || ! empty($diff->addedForeignKeys) || ! empty($diff->addedIndexes)
                 || ! empty($diff->changedColumns) || ! empty($diff->changedForeignKeys) || ! empty($diff->changedIndexes)
                 || ! empty($diff->removedColumns) || ! empty($diff->removedForeignKeys) || ! empty($diff->removedIndexes)
-                || ! empty($diff->renamedIndexes)
+                || ! empty($diff->renamedIndexes) || ! empty($diff->renamedForeignKeys)
         ) {
             return false;
         }
@@ -1075,6 +1075,12 @@ class SqlitePlatform extends AbstractPlatform
         $columnNames = $this->getColumnNamesInAlteredTable($diff);
 
         foreach ($foreignKeys as $key => $constraint) {
+            foreach ($diff->renamedForeignKeys as $oldForeignKeyName => $renamedForeignKey) {
+                if (strcasecmp($key, $oldForeignKeyName) === 0) {
+                    unset($foreignKeys[$key]);
+                }
+            }
+
             $changed = false;
             $localColumns = array();
             foreach ($constraint->getLocalColumns() as $columnName) {
@@ -1102,7 +1108,7 @@ class SqlitePlatform extends AbstractPlatform
             }
         }
 
-        foreach (array_merge($diff->changedForeignKeys, $diff->addedForeignKeys) as $constraint) {
+        foreach (array_merge($diff->changedForeignKeys, $diff->addedForeignKeys, $diff->renamedForeignKeys) as $constraint) {
             $constraintName = strtolower($constraint->getName());
             if (strlen($constraintName)) {
                 $foreignKeys[$constraintName] = $constraint;
